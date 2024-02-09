@@ -30,6 +30,11 @@ public class Table {
     protected final Integer[] cardToSlot; // slot per card (if any)
 
     /**
+     * Mapping between a slot and the player has a token there (-1 if no token placed).
+     */
+    protected final Integer[] slotToPlayer; // card per slot (if any)
+
+    /**
      * Constructor for testing.
      *
      * @param env        - the game environment objects.
@@ -41,6 +46,11 @@ public class Table {
         this.env = env;
         this.slotToCard = slotToCard;
         this.cardToSlot = cardToSlot;
+        this.slotToPlayer = new Integer[slotToCard.length];
+        for(int i = 0 ; i < slotToPlayer.length ; i++)
+        {
+            this.slotToPlayer[i] = -1;
+        }
     }
 
     /**
@@ -94,7 +104,7 @@ public class Table {
         cardToSlot[card] = slot;
         slotToCard[slot] = card;
 
-        // TODO implement
+        env.ui.placeCard(card, slot);
     }
 
     /**
@@ -106,7 +116,7 @@ public class Table {
             Thread.sleep(env.config.tableDelayMillis);
         } catch (InterruptedException ignored) {}
 
-        // TODO implement
+        env.ui.removeCard(slot);
     }
 
     /**
@@ -115,7 +125,8 @@ public class Table {
      * @param slot   - the slot on which to place the token.
      */
     public void placeToken(int player, int slot) {
-        // TODO implement
+        env.ui.placeToken(player,slot);
+        slotToPlayer[slot] = player;
     }
 
     /**
@@ -125,7 +136,22 @@ public class Table {
      * @return       - true iff a token was successfully removed.
      */
     public boolean removeToken(int player, int slot) {
-        // TODO implement
+        if(slotToPlayer[slot] == player)
+        {
+            env.ui.removeToken(player, slot);
+            slotToPlayer[slot] = -1;
+            return true;
+        }
         return false;
+    }
+
+     /**
+     * Removes a token of a player from a grid slot.
+     * @param player - the player the token belongs to.
+     * @param slot   - the slot from which to remove the token.
+     * @return       - true iff a token was successfully removed.
+     */
+    public int getSlotTokenPlayerID(int slot) {
+        return slotToPlayer[slot];
     }
 }
