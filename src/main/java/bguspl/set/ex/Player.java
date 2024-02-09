@@ -1,5 +1,7 @@
 package bguspl.set.ex;
 
+import java.util.LinkedList;
+
 import bguspl.set.Env;
 
 /**
@@ -50,6 +52,12 @@ public class Player implements Runnable {
      */
     private int score;
 
+    
+    /**
+     * Player actions queue.
+     */
+    private LinkedList<Integer> action;
+
     /**
      * The class constructor.
      *
@@ -64,7 +72,7 @@ public class Player implements Runnable {
         this.table = table;
         this.id = id;
         this.human = human;
-        //test
+        this.action = new LinkedList<Integer>();
     }
 
     /**
@@ -115,7 +123,17 @@ public class Player implements Runnable {
      * @param slot - the slot corresponding to the key pressed.
      */
     public void keyPressed(int slot) {
-        // TODO implement
+        if(table.getSlotTokenPlayerID(slot) != -1)
+        {
+            if(table.getSlotTokenPlayerID(slot) == this.id)
+            {
+                this.table.removeToken(this.id, slot);
+            }
+        }
+        else
+        {
+            this.table.placeToken(this.id, slot);
+        }
     }
 
     /**
