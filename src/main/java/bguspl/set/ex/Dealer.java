@@ -2,6 +2,8 @@ package bguspl.set.ex;
 
 import bguspl.set.Env;
 
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -37,11 +39,14 @@ public class Dealer implements Runnable {
      */
     private long reshuffleTime = Long.MAX_VALUE;
 
+    private List<Integer> cardsToDelete;
+
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
         this.table = table;
         this.players = players;
         deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toList());
+        this.cardsToDelete = new LinkedList<Integer>();
     }
 
     /**
@@ -92,14 +97,22 @@ public class Dealer implements Runnable {
      * Checks cards should be removed from the table and removes them.
      */
     private void removeCardsFromTable() {
-        // TODO implement
+
+
+
     }
 
     /**
      * Check if any cards can be removed from the deck and placed on the table.
      */
-    private void placeCardsOnTable() {
-        // TODO implement
+    private void placeCardsOnTable() { 
+        for(int i = 0; this.deck.size() > 0 && i < table.slotToCard.length; i++)
+        {
+            if(table.slotToCard[i] == -1)
+            {
+                table.slotToCard[i] = takeCard(); 
+            }
+        }
     }
 
     /**
@@ -128,5 +141,20 @@ public class Dealer implements Runnable {
      */
     private void announceWinners() {
         // TODO implement
+    }
+
+
+    /**
+     * shuffle the dealer's deck
+     */
+    private void shuffleDeck() {
+        Collections.shuffle(this.deck); 
+    }
+
+    /**
+     * takes the first card from the deck
+     */
+    private int takeCard() {
+        return this.deck.remove(0);
     }
 }
