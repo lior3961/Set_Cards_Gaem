@@ -64,6 +64,7 @@ public class Player implements Runnable {
         this.table = table;
         this.id = id;
         this.human = human;
+        //test
     }
 
     /**
