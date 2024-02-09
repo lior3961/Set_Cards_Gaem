@@ -1,6 +1,7 @@
 package bguspl.set.ex;
 
 import java.util.LinkedList;
+import java.util.Queue;
 
 import bguspl.set.Env;
 
@@ -52,11 +53,14 @@ public class Player implements Runnable {
      */
     private int score;
 
+    private Integer[] tokens; //tokens[i] is the slot where the token is placed, -1 if it has not been placed yet
+
+    private int countTokens; // how much tokens have been placed already
     
     /**
      * Player actions queue.
      */
-    private LinkedList<Integer> action;
+    private Queue<Integer> actions;
 
     /**
      * The class constructor.
@@ -72,7 +76,12 @@ public class Player implements Runnable {
         this.table = table;
         this.id = id;
         this.human = human;
-        this.action = new LinkedList<Integer>();
+        this.actions = new LinkedList<Integer>();
+        this.tokens = new Integer[3];
+        tokens[0] = -1;
+        tokens[1] = -1;
+        tokens[2] = -1;
+        this.countTokens = 0;
     }
 
     /**
@@ -101,6 +110,7 @@ public class Player implements Runnable {
             env.logger.info("thread " + Thread.currentThread().getName() + " starting.");
             while (!terminate) {
                 // TODO implement player key press simulator
+                keyPressed(countTokens);
                 try {
                     synchronized (this) { wait(); }
                 } catch (InterruptedException ignored) {}
@@ -123,16 +133,26 @@ public class Player implements Runnable {
      * @param slot - the slot corresponding to the key pressed.
      */
     public void keyPressed(int slot) {
-        if(table.getSlotTokenPlayerID(slot) != -1)
+        boolean toRemove = false;
+        int x = -1;
+        for(int i = 0; i < tokens.length && !toRemove; i++)
         {
-            if(table.getSlotTokenPlayerID(slot) == this.id)
+            if(tokens[i] == slot)
             {
-                this.table.removeToken(this.id, slot);
+                table.removeToken(this.id, slot);
+                countTokens--;
+                toRemove = true;
+            }
+            else if(tokens[i] == -1)
+            {
+                x = i;
             }
         }
-        else
+        if(!toRemove && x != -1)
         {
-            this.table.placeToken(this.id, slot);
+            tokens[x] = slot;
+            table.placeToken(this.id, slot);
+            countTokens++;
         }
     }
 
@@ -143,10 +163,9 @@ public class Player implements Runnable {
      * @post - the player's score is updated in the ui.
      */
     public void point() {
-        // TODO implement
-
         int ignored = table.countCards(); // this part is just for demonstration in the unit tests
         env.ui.setScore(id, ++score);
+        //TODO implement
     }
 
     /**
