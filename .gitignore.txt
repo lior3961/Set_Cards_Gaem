@@ -1,1 +1,2 @@
-target\
+/setcardsgame/target/
+/setcardsgame/log/
