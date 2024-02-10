@@ -7,6 +7,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.Arrays;
 
 /**
  * This class manages the dealer's threads and data
@@ -37,16 +38,21 @@ public class Dealer implements Runnable {
     /**
      * The time when the dealer needs to reshuffle the deck due to turn timeout.
      */
-    private long reshuffleTime = Long.MAX_VALUE;
+    private long reshuffleTime = 60000;
 
-    private List<Integer> cardsToDelete;
+
+    private long startLoopTime;
+
+    private long timePassed;
 
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
         this.table = table;
         this.players = players;
         deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toList());
-        this.cardsToDelete = new LinkedList<Integer>();
+        this.startLoopTime = 0;
+        this.timePassed = 0;
+        this.terminate = false;
     }
 
     /**
@@ -57,8 +63,9 @@ public class Dealer implements Runnable {
         env.logger.info("thread " + Thread.currentThread().getName() + " starting.");
         while (!shouldFinish()) {
             placeCardsOnTable();
+            startLoopTime = System.currentTimeMillis();
             timerLoop();
-            updateTimerDisplay(false);
+            updateTimerDisplay(true);
             removeAllCardsFromTable();
         }
         announceWinners();
@@ -69,7 +76,8 @@ public class Dealer implements Runnable {
      * The inner loop of the dealer thread that runs as long as the countdown did not time out.
      */
     private void timerLoop() {
-        while (!terminate && System.currentTimeMillis() < reshuffleTime) {
+        
+        while (!terminate && timePassed < reshuffleTime) {
             sleepUntilWokenOrTimeout();
             updateTimerDisplay(false);
             removeCardsFromTable();
@@ -81,7 +89,8 @@ public class Dealer implements Runnable {
      * Called when the game should be terminated.
      */
     public void terminate() {
-        // TODO implement
+        terminate = true;
+
     }
 
     /**
@@ -94,9 +103,22 @@ public class Dealer implements Runnable {
     }
 
     /**
+     * check if there are no sets left in all remaining cards (including the table).
+     * 
+     * @return true iff there is no sets left in the game.
+     */
+    private boolean shouldFinishWhileLoop() {
+        List<Integer> allRemainingCards = new LinkedList<>();
+        allRemainingCards.addAll(this.deck); // adds deck cards into list
+        allRemainingCards.addAll(Arrays.asList(this.table.slotToCard)); // adds table cards into list
+        return env.util.findSets(allRemainingCards, 1).size() == 0; 
+    }
+
+    /**
      * Checks cards should be removed from the table and removes them.
      */
     private void removeCardsFromTable() {
+        
 
 
 
@@ -106,14 +128,42 @@ public class Dealer implements Runnable {
      * Check if any cards can be removed from the deck and placed on the table.
      */
     private void placeCardsOnTable() { 
-        for(int i = 0; this.deck.size() > 0 && i < table.slotToCard.length; i++)
+        if(!shouldFinishWhileLoop())
         {
-            if(table.slotToCard[i] == -1)
+            int numOfCards = table.countCards();          
+            if(numOfCards == 0) //Check if the table needs to be renewed
             {
-                table.slotToCard[i] = takeCard(); 
+                synchronized(table)
+                {
+                    shuffleDeck();
+                    for(int i = 0; i < table.slotToCard.length; i++)
+                    {   
+                        table.placeCard(takeCard(), i); // place card in table in slot i
+                        env.ui.placeCard(table.slotToCard[i], i); // UI: show card on table
+                    } 
+                }
+            }             
+            else 
+            {
+                for(int i = 0 ; i < table.slotToCard.length && !deck.isEmpty() ; i++)
+                {
+                    if(table.slotToCard[i] == null)
+                    {
+                        int card = takeCard();
+                        table.placeCard(card, i);
+                        env.ui.placeCard(card, i);
+                    }
+                }      
             }
+        
         }
+        else
+        {
+
+            terminate();   
+        }      
     }
+
 
     /**
      * Sleep for a fixed amount of time or until the thread is awakened for some purpose.
@@ -126,7 +176,23 @@ public class Dealer implements Runnable {
      * Reset and/or update the countdown and the countdown display.
      */
     private void updateTimerDisplay(boolean reset) {
-        // TODO implement
+        if(reset)
+        {
+            timePassed = 0;
+            env.ui.setCountdown(reshuffleTime ,false); //starts the countDown from 60 seconds
+        }
+        else
+        {
+            timePassed = System.currentTimeMillis() - startLoopTime;  
+            if(reshuffleTime - timePassed < 10000) // timer will be red if there are less then 10 seconds left
+            {
+                env.ui.setCountdown(reshuffleTime - timePassed ,true);   
+            }  
+            else
+            {
+                env.ui.setCountdown(reshuffleTime - timePassed ,false);   
+            }
+        }
     }
 
     /**

@@ -133,22 +133,23 @@ public class Player implements Runnable {
      * @param slot - the slot corresponding to the key pressed.
      */
     public void keyPressed(int slot) {
-        boolean toRemove = false;
+        boolean toRemove = false; //did we find a token to remove?
         int x = -1;
         for(int i = 0; i < tokens.length && !toRemove; i++)
         {
-            if(tokens[i] == slot)
+            if(tokens[i] == slot) // the player pressed on a token he already placed
             {
                 table.removeToken(this.id, slot);
+                tokens[i] = -1;
                 countTokens--;
                 toRemove = true;
             }
-            else if(tokens[i] == -1)
+            else if(tokens[i] == -1) //save an available place in the tokens array
             {
                 x = i;
             }
         }
-        if(!toRemove && x != -1)
+        if(!toRemove && x != -1) // place the token and save it in the player's array
         {
             tokens[x] = slot;
             table.placeToken(this.id, slot);
