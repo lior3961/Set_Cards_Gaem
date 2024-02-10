@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Queue;
 import java.util.stream.Collectors;
 
 /**
@@ -29,8 +30,13 @@ public class Table {
      * Mapping between a card and the slot it is in (null if none).
      */
     protected final Integer[] cardToSlot; // slot per card (if any)
-
+    
+    /**
+     * 
+     */
     private LinkedList<Integer>[] tokensByPlayersID;
+
+    private Queue<Integer> playersWith3Tokens;
 
 
     /**
@@ -50,6 +56,7 @@ public class Table {
         {
             this.tokensByPlayersID[i] = new LinkedList<Integer>();
         }
+        playersWith3Tokens = new LinkedList<Integer>();
     }
 
     /**
@@ -114,7 +121,7 @@ public class Table {
         try {
             Thread.sleep(env.config.tableDelayMillis);
         } catch (InterruptedException ignored) {}
-
+        slotToCard[slot] = null;
         env.ui.removeCard(slot);
     }
 
@@ -124,6 +131,7 @@ public class Table {
      * @param slot   - the slot on which to place the token.
      */
     public void placeToken(int player, int slot) {
+        
         env.ui.placeToken(player,slot);
         this.tokensByPlayersID[slot].add(player);
   //TODO
@@ -145,5 +153,17 @@ public class Table {
         }
         return false;
     }
+    public Queue<Integer> getPlayerWith3Tokens(){
+        return playersWith3Tokens;
+    }
+
+    public void addPlayerWith3Tokens(int player)
+    {
+        synchronized(playersWith3Tokens)
+        {
+            this.playersWith3Tokens.add(player);
+        }
+    }
+
 
 }
