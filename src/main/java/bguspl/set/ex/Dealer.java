@@ -7,7 +7,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.Arrays;
 
 /**
  * This class manages the dealer's threads and data
@@ -110,30 +109,58 @@ public class Dealer implements Runnable {
     private boolean shouldFinishWhileLoop() {
         List<Integer> allRemainingCards = new LinkedList<>();
         allRemainingCards.addAll(this.deck); // adds deck cards into list
-        allRemainingCards.addAll(Arrays.asList(this.table.slotToCard)); // adds table cards into list
+        for(Integer card : table.slotToCard)// adds table cards into list
+        {
+            if(card != null)
+            {
+                allRemainingCards.add(card);
+            }
+        } 
         return env.util.findSets(allRemainingCards, 1).size() == 0; 
     }
 
     /**
-     * Checks cards should be removed from the table and removes them.
+     * Checks if cards should be removed from the table and removes them.
      */
     private void removeCardsFromTable() {
         
-
-
-
+        while(!table.getPlayerWith3Tokens().isEmpty())
+        {
+            Player p = this.findPlayer(table.getPlayerWith3Tokens().poll());
+            if(env.util.testSet(p.getTokens()))
+            {  
+                for(int i = 0; i < p.getTokens().length; i++)
+                {
+                    int card = p.getTokens()[i];
+                    removeTokens(table.cardToSlot[card]);
+                    env.ui.removeCard(table.cardToSlot[card]);
+                    table.removeCard(table.cardToSlot[card]);
+                }
+                updateTimerDisplay(true);
+                p.resetPlayerToken();
+                p.point();
+                updatePlayersWith3Tokens();
+            }
+            else
+            {
+                p.resetPlayerToken();
+                p.penalty();
+            }
+            
+        }
+    
     }
 
     /**
      * Check if any cards can be removed from the deck and placed on the table.
      */
     private void placeCardsOnTable() { 
-        if(!shouldFinishWhileLoop())
+        if(!shouldFinishWhileLoop()) // Checks if there are legal sets left (either on table or deck)
         {
             int numOfCards = table.countCards();          
-            if(numOfCards == 0) //Check if the table needs to be renewed
+            if(numOfCards == 0) //Checks if the table needs to be renewed
             {
-                synchronized(table)
+                synchronized(table) //No player can touch the table in this case
                 {
                     shuffleDeck();
                     for(int i = 0; i < table.slotToCard.length; i++)
@@ -159,7 +186,6 @@ public class Dealer implements Runnable {
         }
         else
         {
-
             terminate();   
         }      
     }
@@ -179,9 +205,10 @@ public class Dealer implements Runnable {
         if(reset)
         {
             timePassed = 0;
+            startLoopTime = System.currentTimeMillis();
             env.ui.setCountdown(reshuffleTime ,false); //starts the countDown from 60 seconds
         }
-        else
+        else 
         {
             timePassed = System.currentTimeMillis() - startLoopTime;  
             if(reshuffleTime - timePassed < 10000) // timer will be red if there are less then 10 seconds left
@@ -199,7 +226,13 @@ public class Dealer implements Runnable {
      * Returns all the cards from the table to the deck.
      */
     private void removeAllCardsFromTable() {
-        // TODO implement
+        for(Integer card : table.slotToCard)
+        {
+            deck.add(card);
+            env.ui.removeCard(table.cardToSlot[card]);
+            this.table.removeCard(table.cardToSlot[card]);       
+        }
+            this.resetTokens();
     }
 
     /**
@@ -222,5 +255,48 @@ public class Dealer implements Runnable {
      */
     private int takeCard() {
         return this.deck.remove(0);
+    }
+
+    private void resetTokens() //When we deal the table anew
+    {
+        env.ui.removeTokens();
+        for(Player p: players)
+        {
+            p.resetPlayerToken();
+        }
+    }
+
+    private Player findPlayer(int id)
+    {
+        for(Player p : this.players)
+        {
+            if(p.id == id)
+                return p;
+        }
+        return null;
+    }
+
+    private void removeTokens(int slot) 
+    // deletes the tokens from the array of each player that put a token in the relevant slot
+    {
+        env.ui.removeTokens(slot);
+        int card = table.slotToCard[slot];
+        for(Player p : players)
+        {
+            p.removeTokenFromCard(card);
+        }
+    }
+
+    public void updatePlayersWith3Tokens()
+    {
+        int size = table.getPlayerWith3Tokens().size();
+        for(int i = 0 ; i < size ; i ++)
+        {
+            Player p = findPlayer(table.getPlayerWith3Tokens().poll());
+            if(p.getCountTokens() == 3)
+            {
+                table.addPlayerWith3Tokens(p.id);
+            }    
+        }
     }
 }

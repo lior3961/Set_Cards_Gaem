@@ -53,14 +53,14 @@ public class Player implements Runnable {
      */
     private int score;
 
-    private Integer[] tokens; //tokens[i] is the slot where the token is placed, -1 if it has not been placed yet
+    private int[] tokens; //tokens[i] is the card that the token is placed on, -1 if it has not been placed yet
 
     private int countTokens; // how much tokens have been placed already
     
     /**
      * Player actions queue.
      */
-    private Queue<Integer> actions;
+private Queue<Integer> actions;
 
     /**
      * The class constructor.
@@ -77,11 +77,12 @@ public class Player implements Runnable {
         this.id = id;
         this.human = human;
         this.actions = new LinkedList<Integer>();
-        this.tokens = new Integer[3];
+        this.tokens = new int[3];
+        this.countTokens = 0;
         tokens[0] = -1;
         tokens[1] = -1;
         tokens[2] = -1;
-        this.countTokens = 0;
+        
     }
 
     /**
@@ -137,7 +138,7 @@ public class Player implements Runnable {
         int x = -1;
         for(int i = 0; i < tokens.length && !toRemove; i++)
         {
-            if(tokens[i] == slot) // the player pressed on a token he already placed
+            if(tokens[i] == table.slotToCard[slot]) // the player pressed on a token he already placed
             {
                 table.removeToken(this.id, slot);
                 tokens[i] = -1;
@@ -151,9 +152,13 @@ public class Player implements Runnable {
         }
         if(!toRemove && x != -1) // place the token and save it in the player's array
         {
-            tokens[x] = slot;
+            tokens[x] = table.slotToCard[slot];
             table.placeToken(this.id, slot);
             countTokens++;
+            if(countTokens == 3)
+            {
+                table.addPlayerWith3Tokens(this.id);
+            }
         }
     }
 
@@ -164,19 +169,62 @@ public class Player implements Runnable {
      * @post - the player's score is updated in the ui.
      */
     public void point() {
-        int ignored = table.countCards(); // this part is just for demonstration in the unit tests
-        env.ui.setScore(id, ++score);
-        //TODO implement
+        env.ui.setScore(this.id, ++this.score);
+    // TODO
     }
 
     /**
      * Penalize a player and perform other related actions.
      */
     public void penalty() {
-        // TODO implement
+        //TODO
     }
 
     public int score() {
         return score;
     }
+    public int[] getTokens(){
+        return this.tokens;
+    }
+    
+    public int getCountTokens(){
+        return this.countTokens;
+    }
+
+    public void resetPlayerToken()
+    {
+        for(int i = 0 ; i < this.tokens.length ; i++)
+        {
+            if(tokens[i] != -1)
+            {
+                env.ui.removeToken(this.id, table.cardToSlot[tokens[i]]);
+                this.tokens[i] = -1;
+            }
+        }
+        this.countTokens = 0;
+    } 
+
+    public int getIndexOfToken(int card) // return index of card in my tokens array if exist, -1 otherwise
+    {
+        for(int i = 0 ;  i < this.tokens.length ; i++)
+        {
+            if(this.tokens[i] == card)
+            {
+                return i; 
+            }
+        }
+        return -1;
+    }
+
+    public void removeTokenFromCard(int card) //deletes the token of the player from his array if needed
+    {
+        int index = getIndexOfToken(card);
+        if(index != -1)
+        {
+            this.countTokens--;
+            this.tokens[index] = -1;
+        }
+    }
+    // marina tokens stayed after legal set of meni 
+    // the timer didnt reset
 }
