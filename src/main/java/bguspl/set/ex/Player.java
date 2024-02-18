@@ -2,6 +2,8 @@ package bguspl.set.ex;
 
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import bguspl.set.Env;
 
@@ -34,7 +36,8 @@ public class Player implements Runnable {
     private Thread playerThread;
 
     /**
-     * The thread of the AI (computer) player (an additional thread used to generate key presses).
+     * The thread of the AI (computer) player (an additional thread used to generate
+     * key presses).
      */
     private Thread aiThread;
 
@@ -53,14 +56,19 @@ public class Player implements Runnable {
      */
     private int score;
 
-    private int[] tokens; //tokens[i] is the card that the token is placed on, -1 if it has not been placed yet
+    private int[] tokens; // tokens[i] is the card that the token is placed on, -1 if it has not been
+                          // placed yet
 
     private int countTokens; // how much tokens have been placed already
-    
+
     /**
      * Player actions queue.
      */
-private Queue<Integer> actions;
+    private BlockingQueue<Integer> actions;
+
+    private long timeToFreeze;
+
+    private Object lockPlayer;
 
     /**
      * The class constructor.
@@ -69,41 +77,68 @@ private Queue<Integer> actions;
      * @param dealer - the dealer object.
      * @param table  - the table object.
      * @param id     - the id of the player.
-     * @param human  - true iff the player is a human player (i.e. input is provided manually, via the keyboard).
+     * @param human  - true iff the player is a human player (i.e. input is provided
+     *               manually, via the keyboard).
      */
     public Player(Env env, Dealer dealer, Table table, int id, boolean human) {
         this.env = env;
         this.table = table;
         this.id = id;
         this.human = human;
-        this.actions = new LinkedList<Integer>();
+        this.actions = new LinkedBlockingQueue<Integer>(3);
         this.tokens = new int[3];
         this.countTokens = 0;
+        this.timeToFreeze = 0;
+        this.lockPlayer = new Object();
         tokens[0] = -1;
         tokens[1] = -1;
         tokens[2] = -1;
-        
+
     }
 
     /**
-     * The main player thread of each player starts here (main loop for the player thread).
+     * The main player thread of each player starts here (main loop for the player
+     * thread).
      */
     @Override
     public void run() {
         playerThread = Thread.currentThread();
         env.logger.info("thread " + Thread.currentThread().getName() + " starting.");
-        if (!human) createArtificialIntelligence();
-
+        if (!human)
+            createArtificialIntelligence();
         while (!terminate) {
-            // TODO implement main player loop
+            try {
+                execKeyPressed(this.actions.take());
+            } catch (InterruptedException e) {
+                env.logger.info("thread " + Thread.currentThread().getName() + " interrupted");
+            }
+            if (timeToFreeze > 0) {
+                try {
+                    synchronized (lockPlayer) {
+                        env.logger.info("thread " + Thread.currentThread().getName() + " went to sleep" + this.id);
+                        Thread.sleep(timeToFreeze);
+                        env.logger.info("thread " + Thread.currentThread().getName() + " back from sleep" + this.id);
+                        timeToFreeze = 0;
+                    }
+                } catch (InterruptedException e) {
+                    env.logger.info("thread " + Thread.currentThread().getName() + " interrupted");
+                }
+            }
+
         }
-        if (!human) try { aiThread.join(); } catch (InterruptedException ignored) {}
+        if (!human)
+            try {
+                aiThread.join();
+            } catch (InterruptedException ignored) {
+            }
         env.logger.info("thread " + Thread.currentThread().getName() + " terminated.");
     }
 
     /**
-     * Creates an additional thread for an AI (computer) player. The main loop of this thread repeatedly generates
-     * key presses. If the queue of key presses is full, the thread waits until it is not full.
+     * Creates an additional thread for an AI (computer) player. The main loop of
+     * this thread repeatedly generates
+     * key presses. If the queue of key presses is full, the thread waits until it
+     * is not full.
      */
     private void createArtificialIntelligence() {
         // note: this is a very, very smart AI (!)
@@ -113,8 +148,11 @@ private Queue<Integer> actions;
                 // TODO implement player key press simulator
                 keyPressed(countTokens);
                 try {
-                    synchronized (this) { wait(); }
-                } catch (InterruptedException ignored) {}
+                    synchronized (this) {
+                        wait();
+                    }
+                } catch (InterruptedException ignored) {
+                }
             }
             env.logger.info("thread " + Thread.currentThread().getName() + " terminated.");
         }, "computer-" + id);
@@ -134,29 +172,44 @@ private Queue<Integer> actions;
      * @param slot - the slot corresponding to the key pressed.
      */
     public void keyPressed(int slot) {
-        boolean toRemove = false; //did we find a token to remove?
+        try {
+            env.logger.info("thread " + Thread.currentThread().getName() + " inside key pressed" + this.id);
+            this.actions.put(slot);
+        } catch (InterruptedException e) {
+            env.logger.info("thread " + Thread.currentThread().getName() + "interrupted");
+        }
+    }
+
+    /**
+     * This method is called to execute an action simulated by a key pressed.
+     *
+     * @param slot - the slot corresponding to the key pressed.
+     */
+    public void execKeyPressed(int slot) {
+        boolean toRemove = false; // did we find a token to remove?
         int x = -1;
-        for(int i = 0; i < tokens.length && !toRemove; i++)
-        {
-            if(tokens[i] == table.slotToCard[slot]) // the player pressed on a token he already placed
+
+        for (int i = 0; i < tokens.length && !toRemove; i++) {
+            if (tokens[i] == table.slotToCard[slot]) // the player pressed on a token he already
+                                                     // placed
             {
                 table.removeToken(this.id, slot);
                 tokens[i] = -1;
                 countTokens--;
                 toRemove = true;
-            }
-            else if(tokens[i] == -1) //save an available place in the tokens array
+
+            } else if (tokens[i] == -1) // save an available place in the tokens array
             {
                 x = i;
             }
         }
-        if(!toRemove && x != -1) // place the token and save it in the player's array
+        if (!toRemove && x != -1) // place the token and save it in the player's array
         {
             tokens[x] = table.slotToCard[slot];
+            env.logger.info("thread " + Thread.currentThread().getName() + " put token");
             table.placeToken(this.id, slot);
             countTokens++;
-            if(countTokens == 3)
-            {
+            if (countTokens == 3) {
                 table.addPlayerWith3Tokens(this.id);
             }
         }
@@ -170,61 +223,60 @@ private Queue<Integer> actions;
      */
     public void point() {
         env.ui.setScore(this.id, ++this.score);
-    // TODO
+        env.ui.setFreeze(this.id, env.config.pointFreezeMillis);
+        timeToFreeze = env.config.pointFreezeMillis;
     }
 
     /**
      * Penalize a player and perform other related actions.
      */
     public void penalty() {
-        //TODO
+        env.ui.setFreeze(this.id, env.config.penaltyFreezeMillis);
+        timeToFreeze = env.config.penaltyFreezeMillis;
+
     }
 
     public int score() {
         return score;
     }
-    public int[] getTokens(){
+
+    public int[] getTokens() {
         return this.tokens;
     }
-    
-    public int getCountTokens(){
+
+    public int getCountTokens() {
         return this.countTokens;
     }
 
-    public void resetPlayerToken()
-    {
-        for(int i = 0 ; i < this.tokens.length ; i++)
-        {
-            if(tokens[i] != -1)
-            {
-                env.ui.removeToken(this.id, table.cardToSlot[tokens[i]]);
-                this.tokens[i] = -1;
+    public void resetPlayerToken() {
+        synchronized (lockPlayer) {
+            env.logger.info("thread " + Thread.currentThread().getName() + " inside reset" + this.id);
+            for (int i = 0; i < this.tokens.length; i++) {
+                if (tokens[i] != -1) {
+                    env.ui.removeToken(this.id, table.cardToSlot[tokens[i]]);
+                    this.tokens[i] = -1;
+                }
             }
+            this.countTokens = 0;
         }
-        this.countTokens = 0;
-    } 
+    }
 
     public int getIndexOfToken(int card) // return index of card in my tokens array if exist, -1 otherwise
     {
-        for(int i = 0 ;  i < this.tokens.length ; i++)
-        {
-            if(this.tokens[i] == card)
-            {
-                return i; 
+        for (int i = 0; i < this.tokens.length; i++) {
+            if (this.tokens[i] == card) {
+                return i;
             }
         }
         return -1;
     }
 
-    public void removeTokenFromCard(int card) //deletes the token of the player from his array if needed
+    public void removeTokenFromCard(int card) // deletes the token of the player from his array if needed
     {
         int index = getIndexOfToken(card);
-        if(index != -1)
-        {
+        if (index != -1) {
             this.countTokens--;
             this.tokens[index] = -1;
         }
     }
-    // marina tokens stayed after legal set of meni 
-    // the timer didnt reset
 }
