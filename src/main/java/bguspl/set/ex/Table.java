@@ -158,7 +158,8 @@ public class Table {
     public boolean removeToken(int player, int slot) {
         if (tokensByPlayersID[slot].contains(player)) {
             env.ui.removeToken(player, slot);
-            tokensByPlayersID[slot].remove(player);
+            tokensByPlayersID[slot].remove((Object)player);
+            env.logger.info("Remove token for player " + player);
             if (this.playersWith3Tokens.contains(player)) {
                 this.playersWith3Tokens.remove(player);
             }

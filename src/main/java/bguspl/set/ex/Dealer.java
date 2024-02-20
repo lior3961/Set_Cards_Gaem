@@ -80,7 +80,6 @@ public class Dealer implements Runnable {
      * not time out.
      */
     private void timerLoop() {
-
         while (!terminate && timePassed < reshuffleTime) {
             sleepUntilWokenOrTimeout();
             updateTimerDisplay(false);

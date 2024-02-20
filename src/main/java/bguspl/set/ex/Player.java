@@ -146,16 +146,19 @@ public class Player implements Runnable {
     }
 
     public void needToFreeze() {
-        for (long i = timeToFreeze; i > 0; i -= 1000) {
-            try {
-                env.ui.setFreeze(this.id, i);
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                env.logger.info("thread " + Thread.currentThread().getName() + " interrupted");
+        if(timeToFreeze > 0)
+        {
+            for (long i = timeToFreeze; i > 0; i -= 1000) {
+                try {
+                    env.ui.setFreeze(this.id, i);
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    env.logger.info("thread " + Thread.currentThread().getName() + " interrupted");
+                }
             }
+            timeToFreeze = 0;
+            env.ui.setFreeze(id, timeToFreeze);
         }
-        timeToFreeze = 0;
-        env.ui.setFreeze(id, timeToFreeze);
     }
 
     /**
