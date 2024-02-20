@@ -2,6 +2,7 @@ package bguspl.set.ex;
 
 import bguspl.set.Env;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -92,6 +93,9 @@ public class Dealer implements Runnable {
      * Called when the game should be terminated.
      */
     public void terminate() {
+        for (Player p : this.players) {
+            p.terminate();
+        }
         terminate = true;
     }
 
@@ -172,19 +176,16 @@ public class Dealer implements Runnable {
      * Reset and/or update the countdown and the countdown display.
      */
     private void updateTimerDisplay(boolean reset) {
-        if (reset) {
+        if (reset)
+        {
             timePassed = 0;
             startLoopTime = System.currentTimeMillis();
             env.ui.setCountdown(reshuffleTime, false); // starts the countDown from 60 seconds
-        } else {
+        } 
+        else
+        {
             timePassed = System.currentTimeMillis() - startLoopTime;
-            if (reshuffleTime - timePassed < env.config.turnTimeoutWarningMillis) // timer will be red if there are less
-                                                                                  // then 10 seconds left
-            {
-                env.ui.setCountdown(reshuffleTime - timePassed, true);
-            } else {
-                env.ui.setCountdown(reshuffleTime - timePassed, false);
-            }
+            env.ui.setCountdown(reshuffleTime - timePassed, false);
         }
     }
 
@@ -193,9 +194,12 @@ public class Dealer implements Runnable {
      */
     private void removeAllCardsFromTable() {
         for (Integer card : table.slotToCard) {
-            deck.add(card);
-            env.ui.removeCard(table.cardToSlot[card]);
-            this.table.removeCard(table.cardToSlot[card]);
+            if(card != null)
+            {
+                deck.add(card);
+                env.ui.removeCard(table.cardToSlot[card]);
+                this.table.removeCard(table.cardToSlot[card]);
+            }
         }
         this.table.resetAllTokens();
     }
@@ -204,7 +208,21 @@ public class Dealer implements Runnable {
      * Check who is/are the winner/s and displays them.
      */
     private void announceWinners() {
-        // TODO implement
+        LinkedList<Integer> winners = new LinkedList<Integer>();
+        int maxPoints = 0;
+        for (Player p : this.players) {
+            if (p.score() > maxPoints) {
+                winners.clear();
+                winners.add(p.id);
+                maxPoints = p.score();
+            } else {
+                if (p.score() == maxPoints) {
+                    winners.add(p.id);
+                }
+            }
+        }
+        int[] winnersArray = winners.stream().mapToInt(Integer::intValue).toArray();
+        env.ui.announceWinner(winnersArray);
     }
 
     /**

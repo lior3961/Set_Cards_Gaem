@@ -6,7 +6,6 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
@@ -158,8 +157,7 @@ public class Table {
     public boolean removeToken(int player, int slot) {
         if (tokensByPlayersID[slot].contains(player)) {
             env.ui.removeToken(player, slot);
-            tokensByPlayersID[slot].remove((Object)player);
-            env.logger.info("Remove token for player " + player);
+            tokensByPlayersID[slot].remove((Integer) player);
             if (this.playersWith3Tokens.contains(player)) {
                 this.playersWith3Tokens.remove(player);
             }

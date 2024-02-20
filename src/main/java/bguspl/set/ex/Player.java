@@ -83,6 +83,7 @@ public class Player implements Runnable {
         this.actions = new LinkedBlockingQueue<Integer>(3);
         this.timeToFreeze = 0;
         this.lockPlayer = new Object();
+        this.terminate = false;
 
     }
 
@@ -142,12 +143,11 @@ public class Player implements Runnable {
      * Called when the game should be terminated.
      */
     public void terminate() {
-        // TODO implement
+        this.terminate = true;
     }
 
     public void needToFreeze() {
-        if(timeToFreeze > 0)
-        {
+        if (timeToFreeze > 0) {
             for (long i = timeToFreeze; i > 0; i -= 1000) {
                 try {
                     env.ui.setFreeze(this.id, i);
