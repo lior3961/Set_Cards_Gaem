@@ -34,10 +34,13 @@ public class Table {
     protected final Integer[] cardToSlot; // slot per card (if any)
 
     /**
-     * 
+     * An array representing the grid of the table and the tokens placed inside by the ID of the player
      */
     private LinkedList<Integer>[] tokensByPlayersID;
 
+    /**
+     * AA BlockingQueue of 
+     */
     private BlockingQueue<Integer> playersWith3Tokens;
 
     /**
@@ -134,6 +137,8 @@ public class Table {
         env.ui.removeCard(slot);
     }
 
+    public void 
+
     /**
      * Places a player token on a grid slot.
      * 
@@ -143,8 +148,7 @@ public class Table {
     public void placeToken(int player, int slot) {
 
         env.ui.placeToken(player, slot);
-        this.tokensByPlayersID[slot].add(player);
-        // TODO
+        this.tokensByPlayersID[slot].add(player);      
     }
 
     /**
@@ -155,13 +159,8 @@ public class Table {
      * @return - true iff a token was successfully removed.
      */
     public boolean removeToken(int player, int slot) {
-        // TODO
-        if (this.tokensByPlayersID[slot].contains(player)) {
-            env.ui.removeToken(player, slot);
-            this.tokensByPlayersID[slot].remove(player);
-            return true;
-        }
-        return false;
+        env.ui.removeToken(player, slot);
+        this.tokensByPlayersID[slot].remove(player);
     }
 
     public Queue<Integer> getPlayerWith3Tokens() {
@@ -171,6 +170,19 @@ public class Table {
     public void addPlayerWith3Tokens(int player) {
         synchronized (playersWith3Tokens) {
             this.playersWith3Tokens.add(player);
+        }
+    }
+
+    public int getCountToken(int id)
+    {
+        int count = 0; 
+        for(int i=0; i<tokensByPlayersID.length; i++)
+        {
+            if(this.tokensByPlayersID[i].contains(id))
+            
+
+i+                
+            
         }
     }
 

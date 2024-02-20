@@ -56,11 +56,6 @@ public class Player implements Runnable {
      */
     private int score;
 
-    private int[] tokens; // tokens[i] is the card that the token is placed on, -1 if it has not been
-                          // placed yet
-
-    private int countTokens; // how much tokens have been placed already
-
     /**
      * Player actions queue.
      */
@@ -86,13 +81,8 @@ public class Player implements Runnable {
         this.id = id;
         this.human = human;
         this.actions = new LinkedBlockingQueue<Integer>(3);
-        this.tokens = new int[3];
-        this.countTokens = 0;
         this.timeToFreeze = 0;
         this.lockPlayer = new Object();
-        tokens[0] = -1;
-        tokens[1] = -1;
-        tokens[2] = -1;
 
     }
 
@@ -107,24 +97,14 @@ public class Player implements Runnable {
         if (!human)
             createArtificialIntelligence();
         while (!terminate) {
-            try {
-                execKeyPressed(this.actions.take());
-            } catch (InterruptedException e) {
-                env.logger.info("thread " + Thread.currentThread().getName() + " interrupted");
-            }
-            if (timeToFreeze > 0) {
+            while(!this.actions.isEmpty() && timeToFreeze > 0)
+            {
                 try {
-                    synchronized (lockPlayer) {
-                        env.logger.info("thread " + Thread.currentThread().getName() + " went to sleep" + this.id);
-                        Thread.sleep(timeToFreeze);
-                        env.logger.info("thread " + Thread.currentThread().getName() + " back from sleep" + this.id);
-                        timeToFreeze = 0;
-                    }
+                    execKeyPressed(this.actions.take());
                 } catch (InterruptedException e) {
                     env.logger.info("thread " + Thread.currentThread().getName() + " interrupted");
                 }
             }
-
         }
         if (!human)
             try {
@@ -166,12 +146,31 @@ public class Player implements Runnable {
         // TODO implement
     }
 
+    public void freezePlayer(){
+        
+        if (timeToFreeze > 0) {
+                try
+                {
+                    env.logger.info("thread " + Thread.currentThread().getName() + " went to sleep" + this.id);
+                    Thread.sleep(timeToFreeze);
+                    env.logger.info("thread " + Thread.currentThread().getName() + " back from sleep" + this.id);
+                    timeToFreeze = 0;
+                }
+                catch (InterruptedException e)
+                {
+                    env.logger.info("thread " + Thread.currentThread().getName() + " interrupted");
+                }
+        }
+        
+    }
+    
     /**
      * This method is called when a key is pressed.
      *
      * @param slot - the slot corresponding to the key pressed.
      */
     public void keyPressed(int slot) {
+        if(this.table.slotToCard != null && timeToFreeze == 0)
         try {
             env.logger.info("thread " + Thread.currentThread().getName() + " inside key pressed" + this.id);
             this.actions.put(slot);
@@ -186,32 +185,10 @@ public class Player implements Runnable {
      * @param slot - the slot corresponding to the key pressed.
      */
     public void execKeyPressed(int slot) {
-        boolean toRemove = false; // did we find a token to remove?
-        int x = -1;
-
-        for (int i = 0; i < tokens.length && !toRemove; i++) {
-            if (tokens[i] == table.slotToCard[slot]) // the player pressed on a token he already
-                                                     // placed
-            {
-                table.removeToken(this.id, slot);
-                tokens[i] = -1;
-                countTokens--;
-                toRemove = true;
-
-            } else if (tokens[i] == -1) // save an available place in the tokens array
-            {
-                x = i;
-            }
-        }
-        if (!toRemove && x != -1) // place the token and save it in the player's array
+        this.table.placeToken(this.id, slot);
+        if(this.table.getCountToken(this.id) == 3)
         {
-            tokens[x] = table.slotToCard[slot];
-            env.logger.info("thread " + Thread.currentThread().getName() + " put token");
-            table.placeToken(this.id, slot);
-            countTokens++;
-            if (countTokens == 3) {
-                table.addPlayerWith3Tokens(this.id);
-            }
+            this.table.addPlayerWith3Tokens(this.id);
         }
     }
 
@@ -240,43 +217,4 @@ public class Player implements Runnable {
         return score;
     }
 
-    public int[] getTokens() {
-        return this.tokens;
-    }
-
-    public int getCountTokens() {
-        return this.countTokens;
-    }
-
-    public void resetPlayerToken() {
-        synchronized (lockPlayer) {
-            env.logger.info("thread " + Thread.currentThread().getName() + " inside reset" + this.id);
-            for (int i = 0; i < this.tokens.length; i++) {
-                if (tokens[i] != -1) {
-                    env.ui.removeToken(this.id, table.cardToSlot[tokens[i]]);
-                    this.tokens[i] = -1;
-                }
-            }
-            this.countTokens = 0;
-        }
-    }
-
-    public int getIndexOfToken(int card) // return index of card in my tokens array if exist, -1 otherwise
-    {
-        for (int i = 0; i < this.tokens.length; i++) {
-            if (this.tokens[i] == card) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    public void removeTokenFromCard(int card) // deletes the token of the player from his array if needed
-    {
-        int index = getIndexOfToken(card);
-        if (index != -1) {
-            this.countTokens--;
-            this.tokens[index] = -1;
-        }
-    }
 }
