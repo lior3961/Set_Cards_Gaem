@@ -109,24 +109,23 @@ public class Dealer implements Runnable {
      * Checks if cards should be removed from the table and removes them.
      */
     private void removeCardsFromTable() {
-
         while (!table.getPlayerWith3Tokens().isEmpty()) {
-            Player p = this.findPlayer(table.getPlayerWith3Tokens().poll());
-            if (env.util.testSet(p.getTokens())) {
-                for (int i = 0; i < p.getTokens().length; i++) {
-                    int card = p.getTokens()[i];
-                    removeTokens(table.cardToSlot[card]);
-                    env.ui.removeCard(table.cardToSlot[card]);
-                    table.removeCard(table.cardToSlot[card]);
+            try {
+                int playerId = this.table.getPlayerWith3Tokens().take();
+                int[] playerSet = this.table.getPlayerSet(playerId);
+                if (env.util.testSet(playerSet)) {
+                    for (int i = 0; i < playerSet.length; i++) {
+                        int card = playerSet[i];
+                        removeTokens(table.cardToSlot[card]);
+                        table.removeCard(table.cardToSlot[card]);
+                    }
+                    updateTimerDisplay(true);
+                    findPlayer(playerId).point();
+                } else {
+                    findPlayer(playerId).penalty();
                 }
-                updateTimerDisplay(true);
-                p.resetPlayerToken();
-                p.point();
-                updatePlayersWith3Tokens();
-            } else {
-                p.resetPlayerToken();
-                p.penalty();
-
+            } catch (InterruptedException e) {
+                env.logger.info("thread " + Thread.currentThread().getName() + " interrupted.");
             }
 
         }
@@ -140,13 +139,10 @@ public class Dealer implements Runnable {
         int numOfCards = table.countCards();
         if (numOfCards == 0) // Checks if the table needs to be renewed
         {
-            synchronized (table) // No player can touch the table in this case
-            {
-                shuffleDeck();
-                for (int i = 0; i < table.slotToCard.length; i++) {
-                    table.placeCard(takeCard(), i); // place card in table in slot i
-                    env.ui.placeCard(table.slotToCard[i], i); // UI: show card on table
-                }
+            shuffleDeck();
+            for (int i = 0; i < table.slotToCard.length; i++) {
+                table.placeCard(takeCard(), i); // place card in table in slot i
+                env.ui.placeCard(table.slotToCard[i], i); // UI: show card on table
             }
         } else {
             for (int i = 0; i < table.slotToCard.length && !deck.isEmpty(); i++) {
@@ -164,7 +160,13 @@ public class Dealer implements Runnable {
      * purpose.
      */
     private void sleepUntilWokenOrTimeout() {
-        // TODO implement
+        try {
+            synchronized (this.table.getPlayerWith3Tokens()) {
+                this.table.getPlayerWith3Tokens().wait(1000);
+            }
+        } catch (InterruptedException e) {
+            env.logger.info("thread " + Thread.currentThread().getName() + " interrupted.");
+        }
     }
 
     /**
@@ -192,12 +194,11 @@ public class Dealer implements Runnable {
      */
     private void removeAllCardsFromTable() {
         for (Integer card : table.slotToCard) {
-
             deck.add(card);
             env.ui.removeCard(table.cardToSlot[card]);
             this.table.removeCard(table.cardToSlot[card]);
         }
-        this.resetTokens();
+        this.table.resetAllTokens();
     }
 
     /**
@@ -221,14 +222,6 @@ public class Dealer implements Runnable {
         return this.deck.remove(0);
     }
 
-    private void resetTokens() // When we deal the table anew
-    {
-        env.ui.removeTokens();
-        for (Player p : players) {
-            p.resetPlayerToken();
-        }
-    }
-
     private Player findPlayer(int id) {
         for (Player p : this.players) {
             if (p.id == id)
@@ -242,19 +235,9 @@ public class Dealer implements Runnable {
     // relevant slot
     {
         env.ui.removeTokens(slot);
-        int card = table.slotToCard[slot];
-        for (Player p : players) {
-            p.removeTokenFromCard(card);
+        for (int playerID : this.table.getTokensByPlayersID()[slot]) {
+            findPlayer(playerID).placeOrRemoveToken(slot);
         }
     }
 
-    public void updatePlayersWith3Tokens() {
-        int size = table.getPlayerWith3Tokens().size();
-        for (int i = 0; i < size; i++) {
-            Player p = findPlayer(table.getPlayerWith3Tokens().poll());
-            if (p.getCountTokens() == 3) {
-                table.addPlayerWith3Tokens(p.id);
-            }
-        }
-    }
 }

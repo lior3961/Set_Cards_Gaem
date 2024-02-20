@@ -34,12 +34,13 @@ public class Table {
     protected final Integer[] cardToSlot; // slot per card (if any)
 
     /**
-     * An array representing the grid of the table and the tokens placed inside by the ID of the player
+     * An array representing the grid of the table and the tokens placed inside by
+     * the ID of the player
      */
     private LinkedList<Integer>[] tokensByPlayersID;
 
     /**
-     * AA BlockingQueue of 
+     * AA BlockingQueue of
      */
     private BlockingQueue<Integer> playersWith3Tokens;
 
@@ -119,7 +120,6 @@ public class Table {
 
         cardToSlot[card] = slot;
         slotToCard[slot] = card;
-
         env.ui.placeCard(card, slot);
     }
 
@@ -133,11 +133,9 @@ public class Table {
             Thread.sleep(env.config.tableDelayMillis);
         } catch (InterruptedException ignored) {
         }
-        slotToCard[slot] = null;
         env.ui.removeCard(slot);
+        slotToCard[slot] = null;
     }
-
-    public void 
 
     /**
      * Places a player token on a grid slot.
@@ -146,9 +144,8 @@ public class Table {
      * @param slot   - the slot on which to place the token.
      */
     public void placeToken(int player, int slot) {
-
         env.ui.placeToken(player, slot);
-        this.tokensByPlayersID[slot].add(player);      
+        this.tokensByPlayersID[slot].add(player);
     }
 
     /**
@@ -159,31 +156,61 @@ public class Table {
      * @return - true iff a token was successfully removed.
      */
     public boolean removeToken(int player, int slot) {
-        env.ui.removeToken(player, slot);
-        this.tokensByPlayersID[slot].remove(player);
+        if (tokensByPlayersID[slot].contains(player)) {
+            env.ui.removeToken(player, slot);
+            tokensByPlayersID[slot].remove(player);
+            if (this.playersWith3Tokens.contains(player)) {
+                this.playersWith3Tokens.remove(player);
+            }
+            return true;
+        }
+        return false;
     }
 
-    public Queue<Integer> getPlayerWith3Tokens() {
+    public int[] getPlayerSet(int player) {
+        int[] playerSet = new int[3];
+        int card = 0;
+        for (int i = 0; i < this.tokensByPlayersID.length; i++) {
+            if (this.tokensByPlayersID[i].contains(player)) {
+                playerSet[card] = slotToCard[i];
+                card++;
+            }
+        }
+        return playerSet;
+    }
+
+    public BlockingQueue<Integer> getPlayerWith3Tokens() {
         return playersWith3Tokens;
     }
 
     public void addPlayerWith3Tokens(int player) {
-        synchronized (playersWith3Tokens) {
-            this.playersWith3Tokens.add(player);
+        this.playersWith3Tokens.add(player);
+        synchronized (this.playersWith3Tokens) {
+            this.playersWith3Tokens.notifyAll();
         }
     }
 
-    public int getCountToken(int id)
-    {
-        int count = 0; 
-        for(int i=0; i<tokensByPlayersID.length; i++)
-        {
-            if(this.tokensByPlayersID[i].contains(id))
-            
+    public LinkedList<Integer>[] getTokensByPlayersID() {
+        return this.tokensByPlayersID;
+    }
 
-i+                
-            
+    // reset all tokens from table
+    public void resetAllTokens() {
+        for (int i = 0; i < this.tokensByPlayersID.length; i++) {
+            for (int playerID : this.tokensByPlayersID[i]) {
+                this.removeToken(playerID, i);
+            }
         }
     }
 
+    // get player tokens count
+    public int getCountTokensByPlayer(int id) {
+        int count = 0;
+        for (LinkedList<Integer> lst : this.getTokensByPlayersID()) {
+            if (lst.contains(id)) {
+                count++;
+            }
+        }
+        return count;
+    }
 }

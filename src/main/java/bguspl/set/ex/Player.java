@@ -97,10 +97,10 @@ public class Player implements Runnable {
         if (!human)
             createArtificialIntelligence();
         while (!terminate) {
-            while(!this.actions.isEmpty() && timeToFreeze > 0)
-            {
+            needToFreeze(); // Checks if a player thread needs to sleep (Because of penalty or point)
+            while (timeToFreeze == 0 && !this.actions.isEmpty()) {
                 try {
-                    execKeyPressed(this.actions.take());
+                    placeOrRemoveToken(this.actions.take());
                 } catch (InterruptedException e) {
                     env.logger.info("thread " + Thread.currentThread().getName() + " interrupted");
                 }
@@ -126,7 +126,6 @@ public class Player implements Runnable {
             env.logger.info("thread " + Thread.currentThread().getName() + " starting.");
             while (!terminate) {
                 // TODO implement player key press simulator
-                keyPressed(countTokens);
                 try {
                     synchronized (this) {
                         wait();
@@ -146,49 +145,46 @@ public class Player implements Runnable {
         // TODO implement
     }
 
-    public void freezePlayer(){
-        
-        if (timeToFreeze > 0) {
-                try
-                {
-                    env.logger.info("thread " + Thread.currentThread().getName() + " went to sleep" + this.id);
-                    Thread.sleep(timeToFreeze);
-                    env.logger.info("thread " + Thread.currentThread().getName() + " back from sleep" + this.id);
-                    timeToFreeze = 0;
-                }
-                catch (InterruptedException e)
-                {
-                    env.logger.info("thread " + Thread.currentThread().getName() + " interrupted");
-                }
+    public void needToFreeze() {
+        for (long i = timeToFreeze; i > 0; i -= 1000) {
+            try {
+                env.ui.setFreeze(this.id, i);
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                env.logger.info("thread " + Thread.currentThread().getName() + " interrupted");
+            }
         }
-        
+        timeToFreeze = 0;
+        env.ui.setFreeze(id, timeToFreeze);
     }
-    
+
     /**
      * This method is called when a key is pressed.
      *
      * @param slot - the slot corresponding to the key pressed.
      */
     public void keyPressed(int slot) {
-        if(this.table.slotToCard != null && timeToFreeze == 0)
-        try {
-            env.logger.info("thread " + Thread.currentThread().getName() + " inside key pressed" + this.id);
-            this.actions.put(slot);
-        } catch (InterruptedException e) {
-            env.logger.info("thread " + Thread.currentThread().getName() + "interrupted");
-        }
+        if (this.table.slotToCard != null && timeToFreeze == 0)
+            try {
+                this.actions.put(slot);
+            } catch (InterruptedException e) {
+                env.logger.info("thread " + Thread.currentThread().getName() + "interrupted");
+            }
     }
 
     /**
-     * This method is called to execute an action simulated by a key pressed.
+     * Executes player keypressed , if player already have token on specified
+     * slot,
+     * remove it , else place it. (max tokens:3)
      *
      * @param slot - the slot corresponding to the key pressed.
      */
-    public void execKeyPressed(int slot) {
-        this.table.placeToken(this.id, slot);
-        if(this.table.getCountToken(this.id) == 3)
-        {
-            this.table.addPlayerWith3Tokens(this.id);
+    public void placeOrRemoveToken(int slot) {
+        if (!this.table.removeToken(this.id, slot) && this.table.getCountTokensByPlayer(this.id) != 3) {
+            this.table.placeToken(id, slot);
+            if (this.table.getCountTokensByPlayer(this.id) == 3) {
+                this.table.addPlayerWith3Tokens(this.id);
+            }
         }
     }
 
@@ -200,7 +196,6 @@ public class Player implements Runnable {
      */
     public void point() {
         env.ui.setScore(this.id, ++this.score);
-        env.ui.setFreeze(this.id, env.config.pointFreezeMillis);
         timeToFreeze = env.config.pointFreezeMillis;
     }
 
@@ -208,13 +203,14 @@ public class Player implements Runnable {
      * Penalize a player and perform other related actions.
      */
     public void penalty() {
-        env.ui.setFreeze(this.id, env.config.penaltyFreezeMillis);
         timeToFreeze = env.config.penaltyFreezeMillis;
-
     }
 
     public int score() {
         return score;
     }
 
+    public long getTimeToFreeze() {
+        return this.timeToFreeze;
+    }
 }
