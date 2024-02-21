@@ -126,7 +126,7 @@ public class Player implements Runnable {
                 keyPressed(random.nextInt(12));
                 try {
                     synchronized (this) {
-                        wait(1000);
+                        wait(10);
                     }
                 } 
                 catch (InterruptedException ignored) 
@@ -186,11 +186,16 @@ public class Player implements Runnable {
      * @param slot - the slot corresponding to the key pressed.
      */
     public void placeOrRemoveToken(int slot) {
-        if (this.table.slotToCard[slot] != null && !this.table.removeToken(this.id, slot) && this.table.getCountTokensByPlayer(this.id) != 3) {
-            this.table.placeToken(id, slot);
-            if (this.table.getCountTokensByPlayer(this.id) == 3) {
-                this.table.addPlayerWith3Tokens(this.id);
-            }           
+        synchronized(this.table.getSlotLocks()[slot])
+        {
+            if(this.table.slotToCard[slot] != null && !this.table.removeToken(this.id, slot) && this.table.getCountTokensByPlayer(this.id) != 3)
+            {
+                this.table.placeToken(id, slot);
+                if (this.table.getCountTokensByPlayer(this.id) == 3)
+                {
+                    this.table.addPlayerWith3Tokens(this.id);
+                }           
+            }
         }
     }
 

@@ -166,11 +166,8 @@ public class Table {
      */
     public void placeToken(int player, int slot)
     {
-        synchronized(this.slotLocks[slot])
-        {
-            env.ui.placeToken(player, slot);
-            this.tokensByPlayersID[slot].add(player);
-        }
+        env.ui.placeToken(player, slot);
+        this.tokensByPlayersID[slot].add(player);
     }
 
     /**
@@ -198,6 +195,10 @@ public class Table {
         int card = 0;
         for (int i = 0; i < this.tokensByPlayersID.length; i++) {
             if (this.tokensByPlayersID[i].contains(player)) {
+                if(slotToCard[i] == null)
+                {
+                    Thread.currentThread().interrupt();
+                }
                 playerSet[card] = slotToCard[i];
                 card++;
             }
@@ -211,7 +212,8 @@ public class Table {
 
     public void addPlayerWith3Tokens(int player) {
         this.playersWith3Tokens.add(player);
-        synchronized (this.playersWith3Tokens) {
+        synchronized (this.playersWith3Tokens)
+        {
             this.playersWith3Tokens.notifyAll();
         }
     }
