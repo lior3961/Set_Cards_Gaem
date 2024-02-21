@@ -190,7 +190,7 @@ public class Table {
     }
 
 
-    public int[] getPlayerSet(int player) {
+    public int[] getPlayerSet(int player) throws InterruptedException {
         int[] playerSet = new int[3];
         int card = 0;
         for (int i = 0; i < this.tokensByPlayersID.length; i++) {
@@ -199,8 +199,12 @@ public class Table {
                 {
                     Thread.currentThread().interrupt();
                 }
-                playerSet[card] = slotToCard[i];
-                card++;
+                else
+                {
+                    playerSet[card] = slotToCard[i];
+                    card++;
+                }
+
             }
         }
         return playerSet;
