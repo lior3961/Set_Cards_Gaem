@@ -43,6 +43,8 @@ public class Table {
      */
     private BlockingQueue<Integer> playersWith3Tokens;
 
+    public Object[] slotLocks;
+
     /**
      * Constructor for testing.
      *
@@ -62,6 +64,11 @@ public class Table {
             this.tokensByPlayersID[i] = new LinkedList<Integer>();
         }
         playersWith3Tokens = new LinkedBlockingQueue<Integer>();
+        this.slotLocks = new Object[12];
+        for(int i = 0 ; i < this.slotLocks.length ; i ++)
+        {
+            slotLocks[i] = new Object();
+        }
     }
 
     /**
@@ -112,14 +119,20 @@ public class Table {
      * @post - the card placed is on the table, in the assigned slot.
      */
     public void placeCard(int card, int slot) {
-        try {
+        try
+        {
             Thread.sleep(env.config.tableDelayMillis);
-        } catch (InterruptedException ignored) {
         }
-
-        cardToSlot[card] = slot;
-        slotToCard[slot] = card;
-        env.ui.placeCard(card, slot);
+        catch (InterruptedException ignored)
+        {
+                
+        }
+        synchronized(this.slotLocks[slot])
+        {
+            env.ui.placeCard(card, slot);
+            cardToSlot[card] = slot;
+            slotToCard[slot] = card;
+        }        
     }
 
     /**
@@ -128,13 +141,22 @@ public class Table {
      * @param slot - the slot from which to remove the card.
      */
     public void removeCard(int slot) {
-        try {
+        try 
+        {
             Thread.sleep(env.config.tableDelayMillis);
-        } catch (InterruptedException ignored) {
+        } 
+        catch (InterruptedException ignored)
+        {
+            
         }
-        env.ui.removeCard(slot);
-        slotToCard[slot] = null;
+        synchronized(this.slotLocks[slot])
+        {
+            slotToCard[slot] = null;
+            env.ui.removeCard(slot);
+        }
+
     }
+
 
     /**
      * Places a player token on a grid slot.
@@ -142,9 +164,13 @@ public class Table {
      * @param player - the player the token belongs to.
      * @param slot   - the slot on which to place the token.
      */
-    public void placeToken(int player, int slot) {
-        env.ui.placeToken(player, slot);
-        this.tokensByPlayersID[slot].add(player);
+    public void placeToken(int player, int slot)
+    {
+        synchronized(this.slotLocks[slot])
+        {
+            env.ui.placeToken(player, slot);
+            this.tokensByPlayersID[slot].add(player);
+        }
     }
 
     /**
@@ -165,6 +191,7 @@ public class Table {
         }
         return false;
     }
+
 
     public int[] getPlayerSet(int player) {
         int[] playerSet = new int[3];
@@ -211,5 +238,9 @@ public class Table {
             }
         }
         return count;
+    }
+    
+    public Object[] getSlotLocks(){
+        return this.slotLocks;
     }
 }

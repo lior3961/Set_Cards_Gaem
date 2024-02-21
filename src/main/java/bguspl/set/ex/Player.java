@@ -97,9 +97,9 @@ public class Player implements Runnable {
         env.logger.info("thread " + Thread.currentThread().getName() + " starting.");
         if (!human)
             createArtificialIntelligence();
-        while (!terminate) {
+        while(!terminate) {
             needToFreeze(); // Checks if a player thread needs to sleep (Because of penalty or point)
-            while (timeToFreeze == 0 && !this.actions.isEmpty()) {
+            while (timeToFreeze == 0 && !this.actions.isEmpty() && !Thread.currentThread().isInterrupted()) {
                 try {
                     placeOrRemoveToken(this.actions.take());
                 } catch (InterruptedException e) {
@@ -148,16 +148,20 @@ public class Player implements Runnable {
 
     public void needToFreeze() {
         if (timeToFreeze > 0) {
-            for (long i = timeToFreeze; i > 0; i -= 1000) {
+            for (long i = timeToFreeze; i > 0 && !terminate; i -= 1000) {
                 try {
                     env.ui.setFreeze(this.id, i);
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
                     env.logger.info("thread " + Thread.currentThread().getName() + " interrupted");
+                    this.terminate();
                 }
             }
-            timeToFreeze = 0;
-            env.ui.setFreeze(id, timeToFreeze);
+            if(!terminate)
+            {
+                timeToFreeze = 0;
+                env.ui.setFreeze(id, timeToFreeze);
+            }
         }
     }
 
@@ -167,7 +171,7 @@ public class Player implements Runnable {
      * @param slot - the slot corresponding to the key pressed.
      */
     public void keyPressed(int slot) {
-        if (this.table.slotToCard != null && timeToFreeze == 0)
+        if (this.table.slotToCard[slot] != null && timeToFreeze == 0)
             try {
                 this.actions.put(slot);
             } catch (InterruptedException e) {
@@ -183,11 +187,11 @@ public class Player implements Runnable {
      * @param slot - the slot corresponding to the key pressed.
      */
     public void placeOrRemoveToken(int slot) {
-        if (!this.table.removeToken(this.id, slot) && this.table.getCountTokensByPlayer(this.id) != 3) {
+        if (this.table.slotToCard[slot] != null && !this.table.removeToken(this.id, slot) && this.table.getCountTokensByPlayer(this.id) != 3) {
             this.table.placeToken(id, slot);
             if (this.table.getCountTokensByPlayer(this.id) == 3) {
                 this.table.addPlayerWith3Tokens(this.id);
-            }
+            }           
         }
     }
 
@@ -215,5 +219,10 @@ public class Player implements Runnable {
 
     public long getTimeToFreeze() {
         return this.timeToFreeze;
+    }
+    
+    public Thread getPlayerThread()
+    {
+        return this.playerThread;
     }
 }

@@ -93,10 +93,11 @@ public class Dealer implements Runnable {
      * Called when the game should be terminated.
      */
     public void terminate() {
+        terminate = true;
         for (Player p : this.players) {
             p.terminate();
+            p.getPlayerThread().interrupt();
         }
-        terminate = true;
     }
 
     /**
@@ -114,17 +115,19 @@ public class Dealer implements Runnable {
     private void removeCardsFromTable() {
         while (!table.getPlayerWith3Tokens().isEmpty()) {
             try {
-                int playerId = this.table.getPlayerWith3Tokens().take();
-                int[] playerSet = this.table.getPlayerSet(playerId);
+                int playerId = this.table.getPlayerWith3Tokens().take(); // the player id
+                int[] playerSet = this.table.getPlayerSet(playerId); // array of the player cards set
                 if (env.util.testSet(playerSet)) {
                     for (int i = 0; i < playerSet.length; i++) {
                         int card = playerSet[i];
                         removeTokens(table.cardToSlot[card]);
-                        table.removeCard(table.cardToSlot[card]);
+                        table.removeCard(table.cardToSlot[card]);  //synchronized in table                          
                     }
                     updateTimerDisplay(true);
                     findPlayer(playerId).point();
-                } else {
+                }
+                else //The set is illegal -> player is penalized
+                {
                     findPlayer(playerId).penalty();
                 }
             } catch (InterruptedException e) {
@@ -144,15 +147,15 @@ public class Dealer implements Runnable {
         {
             shuffleDeck();
             for (int i = 0; i < table.slotToCard.length; i++) {
-                table.placeCard(takeCard(), i); // place card in table in slot i
-                env.ui.placeCard(table.slotToCard[i], i); // UI: show card on table
+                int card = takeCard();
+                table.placeCard(card, i); // place card in table in slot i
             }
-        } else {
+        }
+        else {
             for (int i = 0; i < table.slotToCard.length && !deck.isEmpty(); i++) {
                 if (table.slotToCard[i] == null) {
                     int card = takeCard();
                     table.placeCard(card, i);
-                    env.ui.placeCard(card, i);
                 }
             }
         }
@@ -164,7 +167,7 @@ public class Dealer implements Runnable {
      */
     private void sleepUntilWokenOrTimeout() {
         try {
-            synchronized (this.table.getPlayerWith3Tokens()) {
+            synchronized (this.table.getPlayerWith3Tokens()) { 
                 this.table.getPlayerWith3Tokens().wait(1000);
             }
         } catch (InterruptedException e) {
