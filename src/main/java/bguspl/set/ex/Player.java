@@ -1,7 +1,6 @@
 package bguspl.set.ex;
 
-import java.util.LinkedList;
-import java.util.Queue;
+import java.util.Random;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -63,8 +62,6 @@ public class Player implements Runnable {
 
     private long timeToFreeze;
 
-    private Object lockPlayer;
-
     /**
      * The class constructor.
      *
@@ -82,7 +79,6 @@ public class Player implements Runnable {
         this.human = human;
         this.actions = new LinkedBlockingQueue<Integer>(3);
         this.timeToFreeze = 0;
-        this.lockPlayer = new Object();
         this.terminate = false;
 
     }
@@ -126,12 +122,15 @@ public class Player implements Runnable {
         aiThread = new Thread(() -> {
             env.logger.info("thread " + Thread.currentThread().getName() + " starting.");
             while (!terminate) {
-                // TODO implement player key press simulator
+                Random random = new Random();
+                keyPressed(random.nextInt(12));
                 try {
                     synchronized (this) {
-                        wait();
+                        wait(1000);
                     }
-                } catch (InterruptedException ignored) {
+                } 
+                catch (InterruptedException ignored) 
+                {
                 }
             }
             env.logger.info("thread " + Thread.currentThread().getName() + " terminated.");

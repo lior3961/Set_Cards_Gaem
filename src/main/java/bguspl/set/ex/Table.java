@@ -223,10 +223,20 @@ public class Table {
     // reset all tokens from table
     public void resetAllTokens() {
         for (int i = 0; i < this.tokensByPlayersID.length; i++) {
-            for (int playerID : this.tokensByPlayersID[i]) {
-                this.removeToken(playerID, i);
+            while (!this.tokensByPlayersID[i].isEmpty()) {
+                this.removeToken(this.tokensByPlayersID[i].getFirst(),i);
             }
         }
+    }
+
+    // reset all tokens from slot
+    public void resetAllTokens(int slot)
+    {
+        while (!this.tokensByPlayersID[slot].isEmpty())
+        {
+            this.removeToken(this.tokensByPlayersID[slot].getFirst(),slot);
+        }
+        env.ui.removeTokens(slot);
     }
 
     // get player tokens count

@@ -2,7 +2,6 @@ package bguspl.set.ex;
 
 import bguspl.set.Env;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -120,7 +119,7 @@ public class Dealer implements Runnable {
                 if (env.util.testSet(playerSet)) {
                     for (int i = 0; i < playerSet.length; i++) {
                         int card = playerSet[i];
-                        removeTokens(table.cardToSlot[card]);
+                        table.resetAllTokens(table.cardToSlot[card]);
                         table.removeCard(table.cardToSlot[card]);  //synchronized in table                          
                     }
                     updateTimerDisplay(true);
@@ -248,16 +247,6 @@ public class Dealer implements Runnable {
                 return p;
         }
         return null;
-    }
-
-    private void removeTokens(int slot)
-    // deletes the tokens from the array of each player that put a token in the
-    // relevant slot
-    {
-        env.ui.removeTokens(slot);
-        for (int playerID : this.table.getTokensByPlayersID()[slot]) {
-            findPlayer(playerID).placeOrRemoveToken(slot);
-        }
     }
 
 }
