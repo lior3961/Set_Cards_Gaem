@@ -80,6 +80,7 @@ public class Player implements Runnable {
         this.actions = new LinkedBlockingQueue<Integer>(3);
         this.timeToFreeze = 0;
         this.terminate = false;
+        this.aiThread = null;
 
     }
 
@@ -126,11 +127,12 @@ public class Player implements Runnable {
                 keyPressed(random.nextInt(12));
                 try {
                     synchronized (this) {
-                        wait(10);
+                        wait(5);
                     }
                 } 
                 catch (InterruptedException ignored) 
                 {
+                    env.logger.info("thread " + Thread.currentThread().getName() + " interrupted.");
                 }
             }
             env.logger.info("thread " + Thread.currentThread().getName() + " terminated.");
@@ -143,6 +145,9 @@ public class Player implements Runnable {
      */
     public void terminate() {
         this.terminate = true;
+        if(this.aiThread != null){
+            this.aiThread.interrupt();
+        }
     }
 
     public void needToFreeze() {
@@ -194,6 +199,7 @@ public class Player implements Runnable {
                 if (this.table.getCountTokensByPlayer(this.id) == 3)
                 {
                     this.table.addPlayerWith3Tokens(this.id);
+                    
                 }           
             }
         }

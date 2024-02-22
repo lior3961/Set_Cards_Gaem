@@ -45,6 +45,8 @@ public class Table {
 
     public Object[] slotLocks;
 
+    public Object[] checkingPlayerSet;
+
     /**
      * Constructor for testing.
      *
@@ -64,7 +66,7 @@ public class Table {
             this.tokensByPlayersID[i] = new LinkedList<Integer>();
         }
         playersWith3Tokens = new LinkedBlockingQueue<Integer>();
-        this.slotLocks = new Object[12];
+        this.slotLocks = new Object[env.config.tableSize];
         for(int i = 0 ; i < this.slotLocks.length ; i ++)
         {
             slotLocks[i] = new Object();
@@ -130,7 +132,9 @@ public class Table {
         synchronized(this.slotLocks[slot])
         {
             env.ui.placeCard(card, slot);
+            env.logger.info("place card to slot: " + cardToSlot[card]);
             cardToSlot[card] = slot;
+            env.logger.info("place card to slot: " + cardToSlot[card]);
             slotToCard[slot] = card;
         }        
     }
@@ -224,25 +228,19 @@ public class Table {
 
     public LinkedList<Integer>[] getTokensByPlayersID() {
         return this.tokensByPlayersID;
-    }
-
-    // reset all tokens from table
-    public void resetAllTokens() {
-        for (int i = 0; i < this.tokensByPlayersID.length; i++) {
-            while (!this.tokensByPlayersID[i].isEmpty()) {
-                this.removeToken(this.tokensByPlayersID[i].getFirst(),i);
-            }
-        }
-    }
+    }    
 
     // reset all tokens from slot
     public void resetAllTokens(int slot)
     {
-        while (!this.tokensByPlayersID[slot].isEmpty())
+        synchronized(this.slotLocks[slot])
         {
-            this.removeToken(this.tokensByPlayersID[slot].getFirst(),slot);
+            while (!this.tokensByPlayersID[slot].isEmpty())
+            {
+                this.removeToken(this.tokensByPlayersID[slot].getFirst(),slot);
+            }
+            env.ui.removeTokens(slot);
         }
-        env.ui.removeTokens(slot);
     }
 
     // get player tokens count
@@ -258,5 +256,9 @@ public class Table {
     
     public Object[] getSlotLocks(){
         return this.slotLocks;
+    }
+
+    public Object getCheckingPlayerSet(){
+        return this.checkingPlayerSet;
     }
 }

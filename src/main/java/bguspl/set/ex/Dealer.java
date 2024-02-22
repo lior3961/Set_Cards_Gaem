@@ -72,6 +72,7 @@ public class Dealer implements Runnable {
             removeAllCardsFromTable();
         }
         announceWinners();
+        terminate();
         env.logger.info("thread " + Thread.currentThread().getName() + " terminated.");
     }
 
@@ -116,17 +117,21 @@ public class Dealer implements Runnable {
             try {
                 int playerId = this.table.getPlayerWith3Tokens().take(); // the player id
                 int[] playerSet = this.table.getPlayerSet(playerId); // array of the player cards set
-                if (env.util.testSet(playerSet)) {
-                    for (int i = 0; i < playerSet.length; i++) {
+                if (env.util.testSet(playerSet))
+                {
+                    for (int i = 0; i < playerSet.length; i++)
+                    {
                         int card = playerSet[i];
-                        table.resetAllTokens(table.cardToSlot[card]);
-                        table.removeCard(table.cardToSlot[card]);  //synchronized in table                          
+                        env.logger.info("testing player set card : " + card);
+                        env.logger.info("testing card to slot array : " + table.cardToSlot[card]);
+                        table.removeCard(table.cardToSlot[card]);  //synchronized in table   
+                        table.resetAllTokens(table.cardToSlot[card]);                       
                     }
                     updateTimerDisplay(true);
                     findPlayer(playerId).point();
                 }
                 else //The set is illegal -> player is penalized
-                {
+                {                   
                     findPlayer(playerId).penalty();
                 }
             } catch (InterruptedException e) {
@@ -195,15 +200,16 @@ public class Dealer implements Runnable {
      * Returns all the cards from the table to the deck.
      */
     private void removeAllCardsFromTable() {
-        for (Integer card : table.slotToCard) {
+        for (int i = 0 ; i < this.table.slotToCard.length ; i++) {
+            Integer card = this.table.slotToCard[i];
             if(card != null)
             {
                 deck.add(card);
-                env.ui.removeCard(table.cardToSlot[card]);
-                this.table.removeCard(table.cardToSlot[card]);
+                this.table.removeCard(i);
+                this.table.resetAllTokens(i);
+                
             }
         }
-        this.table.resetAllTokens();
     }
 
     /**
