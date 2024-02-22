@@ -124,10 +124,10 @@ public class Player implements Runnable {
             env.logger.info("thread " + Thread.currentThread().getName() + " starting.");
             while (!terminate) {
                 Random random = new Random();
-                keyPressed(random.nextInt(12));
+                keyPressed(random.nextInt(env.config.tableSize));
                 try {
                     synchronized (this) {
-                        wait(5);
+                        wait(300);
                     }
                 } 
                 catch (InterruptedException ignored) 

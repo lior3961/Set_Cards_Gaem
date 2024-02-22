@@ -2,6 +2,7 @@ package bguspl.set.ex;
 
 import bguspl.set.Env;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -43,6 +44,8 @@ public class Dealer implements Runnable {
 
     private long timePassed;
 
+    private boolean gameWithTimer;
+
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
         this.table = table;
@@ -52,6 +55,7 @@ public class Dealer implements Runnable {
         this.timePassed = 0;
         this.terminate = false;
         this.reshuffleTime = env.config.turnTimeoutMillis;
+        gameWithTimer = env.config.turnTimeoutMillis > 0;
     }
 
     /**
@@ -67,7 +71,14 @@ public class Dealer implements Runnable {
         while (!shouldFinish()) {
             placeCardsOnTable();
             startLoopTime = System.currentTimeMillis();
-            timerLoop();
+            if(this.gameWithTimer)
+            {
+                timerLoop();
+            }
+            else
+            {
+                NotimerLoop();
+            }
             updateTimerDisplay(true);
             removeAllCardsFromTable();
         }
@@ -82,6 +93,17 @@ public class Dealer implements Runnable {
      */
     private void timerLoop() {
         while (!terminate && timePassed < reshuffleTime) {
+            sleepUntilWokenOrTimeout();
+            updateTimerDisplay(false);
+            removeCardsFromTable();
+            placeCardsOnTable();
+        }
+    }
+
+    private void NotimerLoop()
+    {
+        while (!terminate && !shouldShuffle())
+        {
             sleepUntilWokenOrTimeout();
             updateTimerDisplay(false);
             removeCardsFromTable();
@@ -109,6 +131,17 @@ public class Dealer implements Runnable {
         return terminate || env.util.findSets(deck, 1).size() == 0;
     }
 
+    private boolean shouldShuffle() {
+        List<Integer> cards = new LinkedList<>();
+        for(int i =  0 ; i < this.table.slotToCard.length ; i++)
+        {
+            if(this.table.slotToCard[i] != null)
+            {
+                cards.add(this.table.slotToCard[i]);
+            }
+        }
+        return env.util.findSets(cards, 1).size() == 0;
+    }
     /**
      * Checks if cards should be removed from the table and removes them.
      */
@@ -183,16 +216,31 @@ public class Dealer implements Runnable {
      * Reset and/or update the countdown and the countdown display.
      */
     private void updateTimerDisplay(boolean reset) {
-        if (reset)
+        if(this.reshuffleTime > 0)
         {
-            timePassed = 0;
-            startLoopTime = System.currentTimeMillis();
-            env.ui.setCountdown(reshuffleTime, false); // starts the countDown from 60 seconds
-        } 
+            if (reset)
+            {
+                timePassed = 0;
+                startLoopTime = System.currentTimeMillis();
+                env.ui.setCountdown(reshuffleTime, false); // starts the countDown from 60 seconds
+            } 
+            else
+            {
+                timePassed = System.currentTimeMillis() - startLoopTime;
+                env.ui.setCountdown(reshuffleTime - timePassed, false);
+            }
+        }
         else
         {
-            timePassed = System.currentTimeMillis() - startLoopTime;
-            env.ui.setCountdown(reshuffleTime - timePassed, false);
+            if(this.reshuffleTime == 0) //in case of game without timer
+            {
+                if (reset)
+                {
+                    startLoopTime = System.currentTimeMillis();
+                }
+                timePassed = System.currentTimeMillis() - startLoopTime;
+                env.ui.setElapsed(timePassed);
+            }
         }
     }
 
