@@ -62,6 +62,8 @@ public class Player implements Runnable {
 
     private long timeToFreeze;
 
+    private Object waitingUntilDealerCheck;
+
     /**
      * The class constructor.
      *
@@ -81,7 +83,7 @@ public class Player implements Runnable {
         this.timeToFreeze = 0;
         this.terminate = false;
         this.aiThread = null;
-
+        this.waitingUntilDealerCheck = new Object();
     }
 
     /**
@@ -196,15 +198,23 @@ public class Player implements Runnable {
             if(this.table.slotToCard[slot] != null && !this.table.removeToken(this.id, slot) && this.table.getCountTokensByPlayer(this.id) != 3)
             {
                 this.table.placeToken(id, slot);
-                if (this.table.getCountTokensByPlayer(this.id) == 3)
-                {
-                    this.table.addPlayerWith3Tokens(this.id);
-                }           
             }
         }
-        while (this.table.getPlayerWith3Tokens().contains(this.id))
+        if (this.table.getCountTokensByPlayer(this.id) == 3)
         {
-        }
+            synchronized(this.waitingUntilDealerCheck)
+            {
+                try
+                {
+                    this.table.addPlayerWith3Tokens(this.id);
+                    this.waitingUntilDealerCheck.wait();
+                }
+                catch (InterruptedException e)
+                {
+                    env.logger.info("thread " + Thread.currentThread().getName() + "interrupted");
+                }
+            }
+        }           
     }
 
     /**
@@ -236,5 +246,10 @@ public class Player implements Runnable {
     public Thread getPlayerThread()
     {
         return this.playerThread;
+    }
+
+    public Object getWaitingUntilDealerCheck()
+    {
+        return this.waitingUntilDealerCheck;
     }
 }

@@ -47,6 +47,8 @@ public class Table {
 
     public Object[] checkingPlayerSet;
 
+    public LinkedList<Integer> waitingPlayersToNotify;
+
     /**
      * Constructor for testing.
      *
@@ -71,6 +73,7 @@ public class Table {
         {
             slotLocks[i] = new Object();
         }
+        this.waitingPlayersToNotify = new LinkedList<>();
     }
 
     /**
@@ -187,6 +190,7 @@ public class Table {
             tokensByPlayersID[slot].remove((Integer) player);
             if (this.playersWith3Tokens.contains(player)) {
                 this.playersWith3Tokens.remove(player);
+                this.waitingPlayersToNotify.add(player);
             }
             return true;
         }

@@ -170,7 +170,7 @@ public class Dealer implements Runnable {
             } catch (InterruptedException e) {
                 env.logger.info("thread " + Thread.currentThread().getName() + " interrupted.");
             }
-
+            releaseWaitingPlayers();
         }
 
     }
@@ -259,6 +259,7 @@ public class Dealer implements Runnable {
             }
         }
         this.table.getPlayerWith3Tokens().clear();
+        releaseWaitingPlayers();
     }
 
     /**
@@ -302,6 +303,17 @@ public class Dealer implements Runnable {
                 return p;
         }
         return null;
+    }
+
+    private void releaseWaitingPlayers()
+    {
+        for(Player p : this.players)
+        {
+            synchronized(p.getWaitingUntilDealerCheck())
+            {
+                p.getWaitingUntilDealerCheck().notify();
+            }
+        }
     }
 
 }
