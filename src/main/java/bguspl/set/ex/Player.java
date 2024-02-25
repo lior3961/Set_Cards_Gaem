@@ -202,12 +202,14 @@ public class Player implements Runnable {
         }
         if (this.table.getCountTokensByPlayer(this.id) == 3)
         {
+            this.table.addPlayerWith3Tokens(this.id);
             synchronized(this.waitingUntilDealerCheck)
             {
                 try
                 {
-                    this.table.addPlayerWith3Tokens(this.id);
-                    this.waitingUntilDealerCheck.wait();
+                    env.logger.info("thread " + Thread.currentThread().getName() + " waiting for dealer check");
+                    this.waitingUntilDealerCheck.wait(300);
+                    env.logger.info("thread " + Thread.currentThread().getName() + " waked up by dealer");
                 }
                 catch (InterruptedException e)
                 {

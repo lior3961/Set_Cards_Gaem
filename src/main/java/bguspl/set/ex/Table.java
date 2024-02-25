@@ -45,8 +45,6 @@ public class Table {
 
     public Object[] slotLocks;
 
-    public Object[] checkingPlayerSet;
-
     public LinkedList<Integer> waitingPlayersToNotify;
 
     /**
@@ -262,7 +260,8 @@ public class Table {
         return this.slotLocks;
     }
 
-    public Object getCheckingPlayerSet(){
-        return this.checkingPlayerSet;
+    public LinkedList<Integer> getWaitingPlayersToNotify()
+    {
+        return this.waitingPlayersToNotify;
     }
 }

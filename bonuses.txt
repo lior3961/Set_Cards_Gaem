@@ -51,6 +51,6 @@ changed on the display, key input needs to be handled, etc.) and the only thread
 We are entitled to this bonus.
 1. every time a player claim a set he waits until he is no longer belongs to waiting players queue. the queue contains every player
 claimed a set and waiting for dealer check.
-2. Player::placeOrRemoveToken
-3. we tried put tokens before punishment.
+2. Player::placeOrRemoveToken, Dealer::removeCradsFromTable
+3. we tried put tokens before punishment and use logs to see where dealer wakes up and when player wakes up.
 

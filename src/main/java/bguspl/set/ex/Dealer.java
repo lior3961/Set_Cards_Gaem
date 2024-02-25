@@ -149,14 +149,13 @@ public class Dealer implements Runnable {
         while (!table.getPlayerWith3Tokens().isEmpty()) {
             try {
                 int playerId = this.table.getPlayerWith3Tokens().take(); // the player id
+                env.logger.info("thread " + Thread.currentThread().getName() + " checking set for player: " + playerId);
                 int[] playerSet = this.table.getPlayerSet(playerId); // array of the player cards set
                 if (env.util.testSet(playerSet))
                 {
                     for (int i = 0; i < playerSet.length; i++)
                     {
                         int card = playerSet[i];
-                        env.logger.info("testing player set card : " + card);
-                        env.logger.info("testing card to slot array : " + table.cardToSlot[card]);
                         table.removeCard(table.cardToSlot[card]);  //synchronized in table   
                         table.resetAllTokens(table.cardToSlot[card]);                       
                     }
@@ -167,10 +166,12 @@ public class Dealer implements Runnable {
                 {                   
                     findPlayer(playerId).penalty();
                 }
+                this.table.getWaitingPlayersToNotify().add(playerId);
             } catch (InterruptedException e) {
                 env.logger.info("thread " + Thread.currentThread().getName() + " interrupted.");
             }
             releaseWaitingPlayers();
+            env.logger.info("thread " + Thread.currentThread().getName() + " cleared all waiting players.");
         }
 
     }
@@ -203,12 +204,17 @@ public class Dealer implements Runnable {
      * purpose.
      */
     private void sleepUntilWokenOrTimeout() {
-        try {
-            synchronized (this.table.getPlayerWith3Tokens()) { 
-                this.table.getPlayerWith3Tokens().wait(1000);
+        if(this.table.getPlayerWith3Tokens().isEmpty())
+        {
+            try {
+                synchronized (this.table.getPlayerWith3Tokens()) { 
+                    env.logger.info("thread " + Thread.currentThread().getName() + " want to sleep.");
+                    this.table.getPlayerWith3Tokens().wait(1000);
+                    env.logger.info("thread " + Thread.currentThread().getName() + " woke up.");
+                }
+            } catch (InterruptedException e) {
+                env.logger.info("thread " + Thread.currentThread().getName() + " interrupted.");
             }
-        } catch (InterruptedException e) {
-            env.logger.info("thread " + Thread.currentThread().getName() + " interrupted.");
         }
     }
 
@@ -307,11 +313,13 @@ public class Dealer implements Runnable {
 
     private void releaseWaitingPlayers()
     {
-        for(Player p : this.players)
+        while(!this.table.getWaitingPlayersToNotify().isEmpty())
         {
+            Player p = findPlayer(this.table.getWaitingPlayersToNotify().removeFirst());
             synchronized(p.getWaitingUntilDealerCheck())
             {
-                p.getWaitingUntilDealerCheck().notify();
+                env.logger.info("thread " + Thread.currentThread().getName() + " waking up player: " + p.id);
+                p.getWaitingUntilDealerCheck().notifyAll();
             }
         }
     }
