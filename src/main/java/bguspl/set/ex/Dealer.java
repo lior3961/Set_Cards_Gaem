@@ -258,6 +258,7 @@ public class Dealer implements Runnable {
                 
             }
         }
+        this.table.getPlayerWith3Tokens().clear();
     }
 
     /**
