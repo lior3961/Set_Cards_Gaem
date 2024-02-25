@@ -48,4 +48,9 @@ We are entitled to this bonus.
 changed on the display, key input needs to be handled, etc.) and the only threads created by you are:
 1 thread per player + 1 additional thread for non-human players.
 
-We are not entitled to this bonus.
+We are entitled to this bonus.
+1. every time a player claim a set he waits until he is no longer belongs to waiting players queue. the queue contains every player
+claimed a set and waiting for dealer check.
+2. Player::placeOrRemoveToken
+3. we tried put tokens before punishment.
+
