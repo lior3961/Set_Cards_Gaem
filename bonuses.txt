@@ -12,14 +12,24 @@ with a short description of:
 
 1. Fully supporting all configuration fields and avoiding the use of magic numbers
 
-We are not entitled to this bonus.
-
---------------------
-
+We are entitled to this bonus.
+1. In our code we use the config properties in order to define the behaviour of our code instead of using
+   numbers for example - The table size 
+2. it was used in: Dealer - constructor ^ Player - penalty, point, createArtificialIntelligence ^
+   Table - constructor, removeCard.
+3. We tried to change the configurations in config.properties and we saw that our game ran according to the 
+   config definitions that we put there. If we used for example magic numbers, it wouldn't have worked.
+------------------
 2. Terminating all threads (that you created) gracefully and in reverse order to the order they were created in.
 
-We are not entitled to this bonus.
+We are entitled to this bonus.
 
+1. When the function terminate() of dealer happens, he calls  the terminate() func of all players first and
+   then interrupts them if they are in the middle of any work. This way they will stop running and will terminate the AIs.
+   In the end the dealer terminates itself and all of the threads are terminated. Same happens in players
+   terminate func - each player interrupts his AI thread first and then continues to end his work.
+2. terminate and run of Player and Dealer.
+3. We followed the logs and saw that the threads has been terminated gracefully. 
 --------------------
 
 3. Handling the config.turnTimeoutMillis value as follows:
@@ -27,8 +37,11 @@ config.turnTimeoutMillis < 0: display nothing.
 config.turnTimeoutMillis = 0: display a timer since the last action (reshuffle or set collected).
 Note: in modes without a countdown timer the dealer must ensure there is always at least one legal set on the table.
 
-We are not entitled to this bonus.
-
+We are entitled to this bonus.
+1. We separated 'updateTimerDisplay' method and 'run' method in 'Dealer' to cases and handled it according to the game
+   mode by the config.turnTimeoutMillis.
+2.'updateTimerDisplay' method, 'NoTimerLoop' method and 'run' method in 'Dealer'.
+3. We changed the data in the config and ran our program.
 --------------------
 
 4. Making sure that the threads do not wake up unless some actual job needs to be done (e.g., a value needs to be

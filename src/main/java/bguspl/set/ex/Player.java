@@ -199,9 +199,11 @@ public class Player implements Runnable {
                 if (this.table.getCountTokensByPlayer(this.id) == 3)
                 {
                     this.table.addPlayerWith3Tokens(this.id);
-                    
                 }           
             }
+        }
+        while (this.table.getPlayerWith3Tokens().contains(this.id))
+        {
         }
     }
 
