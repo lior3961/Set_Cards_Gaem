@@ -184,7 +184,7 @@ public class Dealer implements Runnable {
         if (numOfCards == 0) // Checks if the table needs to be renewed
         {
             shuffleDeck();
-            for (int i = 0; i < table.slotToCard.length; i++) {
+            for (int i = 0; i < table.slotToCard.length && !deck.isEmpty(); i++) {
                 int card = takeCard();
                 table.placeCard(card, i); // place card in table in slot i
             }

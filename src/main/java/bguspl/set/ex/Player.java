@@ -129,7 +129,7 @@ public class Player implements Runnable {
                 keyPressed(random.nextInt(env.config.tableSize));
                 try {
                     synchronized (this) {
-                        wait(300);
+                        wait(5);
                     }
                 } 
                 catch (InterruptedException ignored) 
@@ -195,20 +195,21 @@ public class Player implements Runnable {
     public void placeOrRemoveToken(int slot) {
         synchronized(this.table.getSlotLocks()[slot])
         {
-            if(this.table.slotToCard[slot] != null && !this.table.removeToken(this.id, slot) && this.table.getCountTokensByPlayer(this.id) != 3)
+            if(this.table.slotToCard[slot] != null && !this.table.removeToken(this.id, slot) && this.table.getCountTokensByPlayer(this.id) != env.config.featureSize)
             {
                 this.table.placeToken(id, slot);
             }
         }
-        if (this.table.getCountTokensByPlayer(this.id) == 3)
+        if (this.table.getCountTokensByPlayer(this.id) == env.config.featureSize)
         {
-            this.table.addPlayerWith3Tokens(this.id);
+            
             synchronized(this.waitingUntilDealerCheck)
             {
                 try
                 {
+                    this.table.addPlayerWith3Tokens(this.id);
                     env.logger.info("thread " + Thread.currentThread().getName() + " waiting for dealer check");
-                    this.waitingUntilDealerCheck.wait(300);
+                    this.waitingUntilDealerCheck.wait();
                     env.logger.info("thread " + Thread.currentThread().getName() + " waked up by dealer");
                 }
                 catch (InterruptedException e)
